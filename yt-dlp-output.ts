@@ -44,6 +44,7 @@ export interface YTDLPOutput {
     format:               string;
     resolution:           string;
     dynamic_range:        string;
+    filesize:             number;
     filesize_approx:      number;
     http_headers:         HTTPHeaders;
     epoch:                number;
