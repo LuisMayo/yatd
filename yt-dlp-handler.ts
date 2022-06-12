@@ -6,19 +6,15 @@ export class YTDLPHandler {
 
     }
 
-    async getSimulatedInfo() {
-        const [status, stdout, stderr] = await this.runWithCommands();
-        if (status.success) {
-            const json = new TextDecoder().decode(stdout);
-            const finalOutput: YTDLPOutput = JSON.parse(json);
-            return finalOutput;
-        } else {
-            console.log(stderr);
-            return null;
-        }
+    getSimulatedInfo() {
+        return this.runWithCommands();
     }
 
-    private runWithCommands(commands: string[] = []) {
+    downloadVideo() {
+        return this.runWithCommands(['--no-simulate']);
+    }
+
+    private async runWithCommands(commands: string[] = []) {
         const ytdlp = Deno.run({
             cmd: ['yt-dlp', '-j', `-o ${this.id}.$(ext)s`, ...commands, this.url],
             stdin: 'null',
@@ -26,10 +22,20 @@ export class YTDLPHandler {
             stdout: 'piped',
             cwd: tempDirectory
         });
-        return Promise.all([
+        const [status, stdout, stderr] = await Promise.all([
             ytdlp.status(),
             ytdlp.output(),
             ytdlp.stderrOutput()
         ]);
+         if (status.success) {
+            const json = new TextDecoder().decode(stdout);
+            const finalOutput: YTDLPOutput = JSON.parse(json);
+            ytdlp.close();
+            return finalOutput;
+        } else {
+            console.log(stderr);
+            ytdlp.close();
+            return null;
+        }
     }
 }

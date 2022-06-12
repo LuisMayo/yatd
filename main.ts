@@ -1,6 +1,6 @@
+import { Bot, Context, InputFile } from "https://deno.land/x/grammy@v1.8.3/mod.ts";
 import tempDirectory from "https://deno.land/x/temp_dir@v1.0.0/mod.ts"
-import { Bot, InputFile } from "https://deno.land/x/grammy@v1.8.3/mod.ts";
-import { YTDLPOutput } from "./yt-dlp-output.ts";
+import { YTDLPHandler } from "./yt-dlp-handler.ts";
 
 // Create bot object
 if (!Deno.env.get('BOT_TOKEN')) {
@@ -27,37 +27,39 @@ bot.on("message:entities:url", async (ctx) => {
         urls.push(ctx.message.text.substring(info.offset, info.offset + info.length));
     }
     console.log(urls);
+    let i = 0;
     for (const url of urls) {
+        const ytp = new YTDLPHandler(url, uniqueId + i.toString());
         try {
-            const ytdlp = Deno.run({
-                cmd: ['yt-dlp', '-j', `-o ${uniqueId}.$(ext)s`, '--no-simulate', url],
-                stdin: 'null',
-                stderr: 'piped',
-                stdout: 'piped',
-                cwd: tempDirectory
-            });
-            const [status, stdout, stderr] = await Promise.all([
-                ytdlp.status(),
-                ytdlp.output(),
-                ytdlp.stderrOutput()
-            ]);
-            if (status.success) {
-                const json = new TextDecoder().decode(stdout);
-                const finalOutput: YTDLPOutput = JSON.parse(json);
-                const fileDirectory = tempDirectory + '/' + finalOutput.filename;
-                const inputFile = new InputFile(fileDirectory);
-                await ctx.replyWithVideo(inputFile);
-                await Deno.remove(fileDirectory);
+            const info = await ytp.getSimulatedInfo();
+            if (info?.filesize && info.filesize > (50 * 1000 * 1000)) {
+                // Cannot send
+                return;
+            } else if (info?.url) {
+                try {
+                    console.log('Trying URL');
+                    await ctx.replyWithVideo(info.url);
+                } catch (e) {
+                    downloadAndSendVideo(ytp, ctx);
+                }
             } else {
-                const show = new TextDecoder().decode(stderr);
-                console.log(show);
+                downloadAndSendVideo(ytp, ctx);
             }
-            ytdlp.close();
         } catch (e) {
             console.log(e);
         }
+        i++;
     }
 });
+
+async function downloadAndSendVideo(ytp: YTDLPHandler, ctx: Context) {
+    console.log ('Downloading');
+    const download = await ytp.downloadVideo();
+    const fileDirectory = tempDirectory + '/' + download?.filename;
+    const inputFile = new InputFile(fileDirectory)
+    await ctx.replyWithVideo(inputFile);
+    await Deno.remove(fileDirectory);
+}
 
 // Launch!
 bot.start();
