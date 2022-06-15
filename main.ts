@@ -32,9 +32,9 @@ bot.on("message:entities:url", async (ctx) => {
         const ytp = new YTDLPHandler(url, uniqueId + i.toString());
         try {
             const info = await ytp.getSimulatedInfo();
-            if (info?.filesize && info.filesize > (50 * 1000 * 1000)) {
+            if (info == null || (info.filesize && info.filesize > (50 * 1000 * 1000))) {
                 // Cannot send
-                return;
+                continue;
             } else if (info?.url) {
                 try {
                     console.log('Trying URL');
@@ -56,6 +56,7 @@ async function downloadAndSendVideo(ytp: YTDLPHandler, ctx: Context) {
     console.log ('Downloading');
     const download = await ytp.downloadVideo();
     const fileDirectory = tempDirectory + '/' + download?.filename;
+    console.log(fileDirectory);
     const inputFile = new InputFile(fileDirectory)
     await ctx.replyWithVideo(inputFile);
     await Deno.remove(fileDirectory);
