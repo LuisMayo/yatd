@@ -17,7 +17,7 @@ export class YTDLPHandler {
 
     private async runWithCommands(commands: string[] = []) {
         const ytdlp = Deno.run({
-            cmd: [this.engine, ...commands, '-o', `${this.id}.%(ext)s`, this.url],
+            cmd: [this.engine, '--max-filesize', '50m', ...commands, '-o', `${this.id}.%(ext)s`, this.url],
             stdin: 'null',
             stderr: 'piped',
             stdout: 'piped',
