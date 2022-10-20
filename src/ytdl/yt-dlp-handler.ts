@@ -17,7 +17,6 @@ export class YTDLPHandler implements Handler {
                 return msg;
             } else if (info?.url) {
                 try {
-                    console.log('Trying URL');
                     msg = await this.ctx.replyWithVideo(info.url);
                 } catch (e) {
                     msg = await this.downloadAndSendVideo();
@@ -35,10 +34,15 @@ export class YTDLPHandler implements Handler {
         console.log ('Downloading');
         const download = await this.downloadVideo();
         const fileDirectory = tempDirectory + '/' + download?.filename;
-        console.log(fileDirectory);
-        const inputFile = new InputFile(fileDirectory)
-        const msg = await this.ctx.replyWithVideo(inputFile);
-        await Deno.remove(fileDirectory);
+        let msg: Message.VideoMessage | null = null;
+        try {
+            const inputFile = new InputFile(fileDirectory)
+            msg = await this.ctx.replyWithVideo(inputFile);
+        } catch (e) {
+            console.log(e);
+        } finally {
+            await Deno.remove(fileDirectory);
+        }
         return msg;
     }
 
