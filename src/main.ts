@@ -1,6 +1,7 @@
+import { HandlerFactory, HandlerList } from "./handlers.ts";
+
 import { Bot } from "https://deno.land/x/grammy@v1.8.3/mod.ts";
 import { DBCache } from "./database/cache.ts";
-import { HandlerFactory, HandlerList } from "./handlers.ts";
 
 /**
  * List pof handlers we can use to try and send the video from URL
@@ -34,7 +35,10 @@ bot.on("message:entities:url", async (ctx) => {
     const urlsInfo = ctx.message.entities.filter(entity => entity.type === 'url');
     const urls = [];
     for (const info of urlsInfo) {
-        urls.push(ctx.message.text.substring(info.offset, info.offset + info.length));
+        const url = ctx.message.text.substring(info.offset, info.offset + info.length);
+        if (!url.startsWith("https://x.com") && !url.startsWith("https://twitter.com")) {
+            urls.push(url);
+        }
     }
     console.log(urls);
     let i = 0;
